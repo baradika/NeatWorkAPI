@@ -28,7 +28,7 @@ erDiagram
   PEMESANAN ||--o{ ORDER_ITEMS : has
   PEMESANAN ||--o{ ORDER_STATUS_HISTORIES : has
   PEMESANAN ||--|| RATING_PESANAN : has
-  PEMESANAN ||--|| ADDRESSES : lokasi (morph)
+  PEMESANAN ||--|| ADDRESSES : lokasi
 
   PETUGAS_PROFILES ||--o{ PETUGAS_DOCUMENTS : has
 
