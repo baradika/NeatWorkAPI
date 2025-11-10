@@ -9,13 +9,17 @@ class Pemesanan extends Model
 {
     use HasFactory;
 
-    protected $table = 'pemesanan';
+    protected $table = 'pemesanans';
     protected $primaryKey = 'id_pemesanan';
     public $timestamps = false;
 
     protected $fillable = [
-        'id_pelanggan',
-        'id_petugas',
+        'user_id',
+        'jenis_service_id',
+        'alamat',
+        'service_date',
+        'duration',
+        'preferred_gender',
         'id_jadwal',
         'lokasi',
         'catatan',

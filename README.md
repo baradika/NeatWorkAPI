@@ -1,311 +1,304 @@
+# NeatWork API
 
+This is the API documentation for the NeatWork application, a platform that connects users with various home services.
 
-# API Documentation
+## Service Types
 
-Base URL: `http://127.0.0.1:8000/api`
+### Available Services
 
-## ERD (Schema Overview)
+| Kode Service | Nama Layanan | Deskripsi | Harga |
+|--------------|--------------|-----------|-------|
+| S-ART | Asisten Rumah Tangga | Membantu pekerjaan rumah tangga harian | Rp 50,000/jam |
+| S-DC | Deep Cleaning | Pembersihan menyeluruh ruangan | Rp 75,000/jam |
+| S-LN | Laundry | Jasa laundry dan setrika pakaian | Rp 40,000/kg |
+| S-TK | Tukang Kebun | Perawatan dan perbaikan taman | Rp 60,000/jam |
+| S-BB | Baby Sitter | Pengasuhan dan perawatan anak | Rp 80,000/jam |
 
-Mermaid ER diagram for core entities (admin/mitra/pelanggan cleaning platform) based on current models/migrations:
+## Authentication
 
-```mermaid
-erDiagram
-  USERS ||--o{ JADWAL_PETUGAS : has
-  USERS ||--o{ PEMESANAN : pelanggan
-  USERS ||--o{ PEMESANAN : petugas
-  USERS ||--|| PETUGAS_PROFILES : has
-  USERS ||--o{ SERVICE_AREAS : has
-  USERS ||--o{ PETUGAS_SERVICES : offers
+### Register a New User
 
-  SERVICE_CATEGORIES ||--o{ SERVICE_CATEGORIES : parent_children
-  SERVICE_CATEGORIES ||--o{ SERVICES : has
+- **URL**: `/api/auth/register`
+- **Method**: `POST`
+- **Authentication**: Not required
 
-  SERVICES ||--o{ PETUGAS_SERVICES : by
-  SERVICES ||--o{ ORDER_ITEMS : in
-
-  JADWAL_PETUGAS ||--o{ PEMESANAN : used_by
-
-  PEMESANAN ||--o{ ORDER_ITEMS : has
-  PEMESANAN ||--o{ ORDER_STATUS_HISTORIES : has
-  PEMESANAN ||--|| RATING_PESANAN : has
-  PEMESANAN ||--|| ADDRESSES : lokasi
-
-  PETUGAS_PROFILES ||--o{ PETUGAS_DOCUMENTS : has
-
-  USERS {
-    int id_user PK
-    string nama
-    string email
-    string password
-    enum role  "admin|petugas|pelanggan"
-    string no_hp
-    text alamat
-    decimal rating
-    timestamp created_at
-  }
-  JADWAL_PETUGAS {
-    int id_jadwal PK
-    int id_petugas FK
-    date tanggal
-    time waktu_mulai
-    time waktu_selesai
-    enum status "tersedia|dipesan|selesai"
-  }
-  PEMESANAN {
-    int id_pemesanan PK
-    int id_pelanggan FK
-    int id_petugas FK
-    int id_jadwal FK
-    text lokasi
-    text catatan
-    enum status "menunggu|dikonfirmasi|selesai|dibatalkan"
-    timestamp tanggal_pesan
-  }
-  RATING_PESANAN {
-    int id_rating PK
-    int id_pemesanan FK
-    tinyint rating
-    text ulasan
-    timestamp created_at
-  }
-  SERVICE_CATEGORIES {
-    int id_category PK
-    string nama
-    text deskripsi
-    int parent_id FK
-    bool aktif
-  }
-  SERVICES {
-    int id_service PK
-    int id_category FK
-    string nama
-    text deskripsi
-    enum satuan "jam|m2|unit"
-    int durasi_default_menit
-    bool aktif
-  }
-  PETUGAS_SERVICES {
-    int id PK
-    int id_petugas FK
-    int id_service FK
-    decimal harga_satuan
-    int min_order_qty
-    bool aktif
-  }
-  PETUGAS_PROFILES {
-    int id_profile PK
-    int id_user FK
-    string ktp_no
-    string foto_ktp
-    string selfie_ktp
-    date tanggal_lahir
-    enum jenis_kelamin "L|P"
-    enum status_verifikasi "menunggu|diterima|ditolak"
-    text bio
-    tinyint pengalaman_tahun
-  }
-  PETUGAS_DOCUMENTS {
-    int id_document PK
-    int id_profile FK
-    string tipe
-    string file_url
-    enum status "menunggu|diterima|ditolak"
-  }
-  SERVICE_AREAS {
-    int id_area PK
-    int id_petugas FK
-    string kecamatan
-    string kota
-    decimal radius_km
-    bool aktif
-  }
-  ORDER_ITEMS {
-    int id_item PK
-    int id_pemesanan FK
-    int id_service FK
-    int qty
-    decimal harga_satuan
-    decimal total
-  }
-  ORDER_STATUS_HISTORIES {
-    int id_history PK
-    int id_pemesanan FK
-    string status_from
-    string status_to
-    text keterangan
-    timestamp created_at
-  }
-  ADDRESSES {
-    int id_address PK
-    string addressable_type
-    int addressable_id
-    string label
-    text alamat
-    decimal latitude
-    decimal longitude
-    text catatan
-  }
-```
-
-### Migrate schema
-
-```bash
-php artisan migrate
-```
-
-Jika ingin bersih ulang dengan seeder default yang sudah ada:
-
-```bash
-php artisan migrate:fresh --seed
-```
-
-## Auth
-
-- **POST /auth/register**
-  - Registers a customer (role: `pelanggan`).
-  - Request body:
-```json
+**Request Body (JSON):**
+\`\`\`json
 {
-  "email": "customer@example.com",
-  "password": "secret123",
-  "password_confirmation": "secret123"
+    "email": "user@example.com",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "role": "pelanggan"
 }
-```
-  - Example response (201):
-```json
+\`\`\`
+
+**Success Response (201 Created):**
+\`\`\`json
 {
-  "id_user": 4,
-  "nama": "customer",
-  "email": "customer@example.com",
-  "role": "pelanggan",
-  "no_hp": null,
-  "alamat": null,
-  "rating": null,
-  "created_at": "2025-10-15 08:20:00"
+    "status": "success",
+    "message": "Registrasi berhasil",
+    "data": {
+        "id_user": 1,
+        "nama": "user",
+        "email": "user@example.com",
+        "role": "pelanggan",
+        "created_at": "2025-11-10T02:30:00.000000Z"
+    }
+}
+\`\`\`
+
+### Login
+
+- **URL**: `/api/auth/login`
+- **Method**: `POST`
+- **Authentication**: Not required
+
+**Request Body (JSON):**
+\`\`\`json
+{
+    "email": "user@example.com",
+    "password": "password123"
+}
+\`\`\`
+
+**Success Response (200 OK):**
+\`\`\`json
+{
+    "status": "success",
+    "message": "Login berhasil",
+    "data": {
+        "id_user": 1,
+        "nama": "user",
+        "email": "user@example.com",
+        "role": "pelanggan",
+        "created_at": "2025-11-10T02:30:00.000000Z"
+    },
+    "token": "1|abcdefghijklmnopqrstuvwxyz"
 }
 ```
 
-## Users
+## Booking Services
 
-- **GET /users**
-- **GET /users/{id}**
-- **POST /users**
+### Create New Booking
+
+- **URL**: `/api/bookings`
+- **Method**: `POST`
+- **Authentication**: Required (Bearer Token)
+- **Content-Type**: `application/json`
+
+**Request Body (JSON):**
 ```json
 {
-  "nama": "Admin Utama",
-  "email": "admin@cleaning.com",
-  "password": "admin123",
-  "role": "admin",
-  "no_hp": "081234567890",
-  "alamat": "Jakarta",
-  "rating": 4.5
-}
-```
-- **PATCH /users/{id}** same body as POST (all fields optional)
-- **DELETE /users/{id}**
-
-Example response:
-```json
-{
-  "id_user": 1,
-  "nama": "Admin Utama",
-  "email": "admin@cleaning.com",
-  "role": "admin",
-  "no_hp": "081234567890",
-  "alamat": "Jakarta",
-  "rating": 4.5,
-  "created_at": "2025-10-14 19:12:28"
+    "jenis_service_id": 1,
+    "alamat": "Jl. Contoh No. 123, Jakarta",
+    "service_date": "2025-11-15",
+    "duration": 2,
+    "preferred_gender": "female",
+    "catatan": "Mohon bawa peralatan lengkap"
 }
 ```
 
-## Jadwal Petugas
-
-- **GET /jadwal-petugas**
-- **GET /jadwal-petugas/{id}**
-- **POST /jadwal-petugas**
+**Success Response (201 Created):**
 ```json
 {
-  "id_petugas": 2,
-  "tanggal": "2025-10-16",
-  "waktu_mulai": "08:00:00",
-  "waktu_selesai": "12:00:00",
-  "status": "tersedia"
-}
-```
-- **PATCH /jadwal-petugas/{id}** same body as POST (all fields optional)
-- **DELETE /jadwal-petugas/{id}**
-
-Example response:
-```json
-{
-  "id_jadwal": 1,
-  "id_petugas": 2,
-  "tanggal": "2025-10-16",
-  "waktu_mulai": "08:00:00",
-  "waktu_selesai": "12:00:00",
-  "status": "tersedia"
-}
-```
-
-## Pemesanan
-
-- **GET /pemesanan**
-- **GET /pemesanan/{id}**
-- **POST /pemesanan**
-```json
-{
-  "id_pelanggan": 3,
-  "id_petugas": 2,
-  "id_jadwal": 1,
-  "lokasi": "Jakarta Timur",
-  "catatan": "Datang tepat waktu",
-  "status": "menunggu"
-}
-```
-- **PATCH /pemesanan/{id}** same body as POST (all fields optional)
-- **DELETE /pemesanan/{id}**
-
-Example response:
-```json
-{
-  "id_pemesanan": 1,
-  "id_pelanggan": 3,
-  "id_petugas": 2,
-  "id_jadwal": 1,
-  "lokasi": "Jakarta Timur",
-  "catatan": "Datang tepat waktu",
-  "status": "menunggu",
-  "tanggal_pesan": "2025-10-15 07:41:00"
+    "status": "success",
+    "message": "Pemesanan berhasil dibuat",
+    "data": {
+        "id": 1,
+        "user_id": 1,
+        "jenis_service_id": 1,
+        "alamat": "Jl. Contoh No. 123, Jakarta",
+        "service_date": "2025-11-15",
+        "duration": 2,
+        "preferred_gender": "female",
+        "status": "pending",
+        "catatan": "Mohon bawa peralatan lengkap",
+        "total_harga": 100000,
+        "created_at": "2025-11-10T11:30:00.000000Z",
+        "updated_at": "2025-11-10T11:30:00.000000Z",
+        "jenis_service": {
+            "id": 1,
+            "kode_service": "S-ART",
+            "nama_service": "Asisten Rumah Tangga",
+            "deskripsi": "Membantu pekerjaan rumah tangga harian",
+            "harga": 50000,
+            "estimasi_waktu": 1
+        }
+    }
 }
 ```
 
-## Rating Pesanan
+### Get User's Bookings
 
-- **GET /rating-pesanan**
-- **GET /rating-pesanan/{id}**
-- **POST /rating-pesanan**
+- **URL**: `/api/bookings`
+- **Method**: `GET`
+- **Authentication**: Required (Bearer Token)
+
+**Success Response (200 OK):**
 ```json
 {
-  "id_pemesanan": 1,
-  "rating": 5,
-  "ulasan": "Sangat memuaskan"
+    "status": "success",
+    "data": [
+        {
+            "id": 1,
+            "user_id": 1,
+            "jenis_service_id": 1,
+            "alamat": "Jl. Contoh No. 123, Jakarta",
+            "service_date": "2025-11-15",
+            "duration": 2,
+            "preferred_gender": "female",
+            "status": "pending",
+            "catatan": "Mohon bawa peralatan lengkap",
+            "total_harga": 100000,
+            "created_at": "2025-11-10T11:30:00.000000Z",
+            "updated_at": "2025-11-10T11:30:00.000000Z",
+            "jenis_service": {
+                "id": 1,
+                "kode_service": "S-ART",
+                "nama_service": "Asisten Rumah Tangga",
+                "deskripsi": "Membantu pekerjaan rumah tangga harian",
+                "harga": 50000,
+                "estimasi_waktu": 1
+            }
+        }
+    ]
 }
 ```
-- **PATCH /rating-pesanan/{id}** same body as POST (all fields optional)
-- **DELETE /rating-pesanan/{id}**
 
-Example response:
+### Get Booking Details
+
+- **URL**: `/api/bookings/{id}`
+- **Method**: `GET`
+- **Authentication**: Required (Bearer Token)
+
+**Success Response (200 OK):**
 ```json
 {
-  "id_rating": 1,
-  "id_pemesanan": 1,
-  "rating": 5,
-  "ulasan": "Sangat memuaskan",
-  "created_at": "2025-10-15 07:45:00"
+    "status": "success",
+    "data": {
+        "id": 1,
+        "user_id": 1,
+        "jenis_service_id": 1,
+        "alamat": "Jl. Contoh No. 123, Jakarta",
+        "service_date": "2025-11-15",
+        "duration": 2,
+        "preferred_gender": "female",
+        "status": "pending",
+        "catatan": "Mohon bawa peralatan lengkap",
+        "total_harga": 100000,
+        "created_at": "2025-11-10T11:30:00.000000Z",
+        "updated_at": "2025-11-10T11:30:00.000000Z",
+        "jenis_service": {
+            "id": 1,
+            "kode_service": "S-ART",
+            "nama_service": "Asisten Rumah Tangga",
+            "deskripsi": "Membantu pekerjaan rumah tangga harian",
+            "harga": 50000,
+            "estimasi_waktu": 1
+        }
+    }
 }
 ```
 
-## Notes
+## Petugas Profile
 
-- **Validation** is applied in controllers; responses are JSON.
-- **Auth** is not enabled; endpoints are public by default. Consider adding Sanctum if needed.
+### Submit Petugas Profile
+
+- **URL**: `/api/form-profile-petugas`
+- **Method**: `POST`
+- **Authentication**: Required (Bearer Token)
+- **Content-Type**: `multipart/form-data`
+
+**Request Body (Form Data):**
+- `ktp_number` (required, string, 16 digits): Nomor KTP
+- `ktp_photo` (required, file): Foto KTP (max 2MB, jpeg/png/jpg)
+- `selfie_with_ktp` (required, file): Foto selfie dengan KTP (max 2MB, jpeg/png/jpg)
+- `full_name` (required, string): Nama lengkap
+- `date_of_birth` (required, date): Tanggal lahir (YYYY-MM-DD)
+- `phone_number` (required, string): Nomor telepon
+- `address` (required, string): Alamat lengkap
+
+**Headers:**
+\`\`\`
+Authorization: Bearer your_token_here
+Accept: application/json
+\`\`\`
+
+**Success Response (201 Created):**
+\`\`\`json
+{
+    "status": "success",
+    "message": "Profil petugas berhasil diajukan. Menunggu verifikasi admin.",
+    "data": {
+        "id": 1,
+        "user_id": 1,
+        "ktp_number": "1234567890123456",
+        "full_name": "John Doe",
+        "date_of_birth": "1990-01-01",
+        "phone_number": "081234567890",
+        "address": "Jl. Contoh No. 123, Jakarta",
+        "status": "pending",
+        "ktp_photo_path": "petugas/ktp/abc123.jpg",
+        "selfie_with_ktp_path": "petugas/selfie/def456.jpg",
+        "created_at": "2025-11-10T02:30:00.000000Z",
+        "updated_at": "2025-11-10T02:30:00.000000Z"
+    }
+}
+\`\`\`
+
+**Error Response (400 Bad Request - Already Submitted):**
+\`\`\`json
+{
+    "status": "error",
+    "message": "Anda sudah mengajukan verifikasi petugas sebelumnya"
+}
+\`\`\`
+
+## Error Responses
+
+### 401 Unauthorized
+\`\`\`json
+{
+    "status": "error",
+    "message": "Unauthenticated."
+}
+\`\`\`
+
+### 422 Unprocessable Entity (Validation Error)
+\`\`\`json
+{
+    "status": "error",
+    "message": "Validasi gagal",
+    "errors": {
+        "email": [
+            "Email harus diisi"
+        ],
+        "password": [
+            "Password harus diisi"
+        ]
+    }
+}
+\`\`\`
+
+### 500 Internal Server Error
+\`\`\`json
+{
+    "status": "error",
+    "message": "Terjadi kesalahan",
+    "error": "Error message details (only in development)"
+}
+\`\`\`
+
+## Setup
+
+1. Clone the repository
+2. Install dependencies: `composer install`
+3. Copy `.env.example` to `.env` and configure your environment
+4. Generate application key: `php artisan key:generate`
+5. Run migrations: `php artisan migrate`
+6. Link storage: `php artisan storage:link`
+7. Start the development server: `php artisan serve`
+
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).

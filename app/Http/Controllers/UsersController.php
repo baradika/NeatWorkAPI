@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\PetugasProfile;
+use App\Http\Requests\StorePetugasProfileRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UsersController extends Controller
 {
@@ -31,6 +35,68 @@ class UsersController extends Controller
         ]);
         $user = User::create($data);
         return response()->json($user, 201);
+    }
+
+    /**
+     * Store petugas profile with KTP and selfie verification
+     * 
+     * @param StorePetugasProfileRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storePetugasProfile(StorePetugasProfileRequest $request)
+    {
+        try {
+            // Get the authenticated user
+            $user = auth()->user();
+            
+            // Check if user already has a petugas profile
+            if ($user->petugasProfile) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda sudah mengajukan verifikasi petugas sebelumnya',
+                ], 400);
+            }
+            
+            // Handle file uploads
+            $ktpPhotoPath = $request->file('ktp_photo')->store('petugas/ktp', 'public');
+            $selfieWithKtpPath = $request->file('selfie_with_ktp')->store('petugas/selfie', 'public');
+            
+            // Create petugas profile
+            $profile = new PetugasProfile([
+                'ktp_number' => $request->ktp_number,
+                'ktp_photo_path' => $ktpPhotoPath,
+                'selfie_with_ktp_path' => $selfieWithKtpPath,
+                'full_name' => $request->full_name,
+                'date_of_birth' => $request->date_of_birth,
+                'phone_number' => $request->phone_number,
+                'address' => $request->address,
+                'status' => 'pending',
+            ]);
+            
+            // Save the profile
+            $user->petugasProfile()->save($profile);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Profil petugas berhasil diajukan. Menunggu verifikasi admin.',
+                'data' => $profile
+            ], 201);
+            
+        } catch (\Exception $e) {
+            // Delete uploaded files if an error occurs
+            if (isset($ktpPhotoPath) && Storage::disk('public')->exists($ktpPhotoPath)) {
+                Storage::disk('public')->delete($ktpPhotoPath);
+            }
+            if (isset($selfieWithKtpPath) && Storage::disk('public')->exists($selfieWithKtpPath)) {
+                Storage::disk('public')->delete($selfieWithKtpPath);
+            }
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat mengajukan profil petugas',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     public function update(Request $request, string $id)

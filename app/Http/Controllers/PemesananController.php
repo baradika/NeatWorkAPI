@@ -3,13 +3,72 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pemesanan;
-use Illuminate\Http\Request;
+use App\Models\JenisService;
+use App\Http\Requests\StorePemesananRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PemesananController extends Controller
 {
-    public function index()
+    public function store(StorePemesananRequest $request): JsonResponse
     {
-        return response()->json(Pemesanan::query()->get());
+        try {
+            // Check if service exists
+            $service = JenisService::findOrFail($request->jenis_service_id);
+            
+            // Calculate total price based on duration
+            $totalHarga = $service->harga * $request->duration;
+            
+            // Create new booking
+            $pemesanan = Pemesanan::create([
+                'user_id' => Auth::id(),
+                'jenis_service_id' => $request->jenis_service_id,
+                'alamat' => $request->alamat,
+                'service_date' => $request->service_date,
+                'duration' => $request->duration,
+                'preferred_gender' => $request->preferred_gender,
+                'catatan' => $request->catatan,
+                'status' => 'pending',
+                'total_harga' => $totalHarga,
+                'tanggal_pesan' => now(),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pemesanan berhasil dibuat',
+                'data' => $pemesanan->load('jenisService')
+            ], 201);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membuat pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function index(): JsonResponse
+    {
+        try {
+            $pemesanans = Pemesanan::with('jenisService')
+                ->where('user_id', Auth::id())
+                ->latest()
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $pemesanans
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil data pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     public function show(string $id)
