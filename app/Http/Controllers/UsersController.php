@@ -44,7 +44,7 @@ class UsersController extends Controller
     {
         $user = auth()->user();
         Log::info('Checking petugas profile for user ID: ' . $user->id_user);
-        $profile = PetugasProfile::where('id_user', $user->id_user)->first();
+        $profile = PetugasProfile::where('user_id', $user->id_user)->first();
         $hasProfile = !is_null($profile);
         $isVerified = $hasProfile && $profile->status === 'approved';
         Log::info(sprintf(
@@ -59,6 +59,7 @@ class UsersController extends Controller
             'has_profile' => $hasProfile,
             'is_verified' => $isVerified,
             'profile_status' => $hasProfile ? $profile->status : null,
+            'rejection_reason' => $hasProfile ? $profile->rejection_reason : null,
             'user_id' => $user->id_user
         ]);
     }
