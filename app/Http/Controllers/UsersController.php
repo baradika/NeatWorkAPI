@@ -8,6 +8,8 @@ use App\Http\Requests\StorePetugasProfileRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class UsersController extends Controller
 {
@@ -33,35 +35,46 @@ class UsersController extends Controller
             'alamat' => 'nullable|string',
             'rating' => 'nullable|numeric',
         ]);
+        $data['password'] = Hash::make($data['password']);
         $user = User::create($data);
         return response()->json($user, 201);
     }
 
-    /**
-     * Store petugas profile with KTP and selfie verification
-     * 
-     * @param StorePetugasProfileRequest $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function checkPetugasProfile()
+    {
+        $user = auth()->user();
+        Log::info('Checking petugas profile for user ID: ' . $user->id_user);
+        $profile = PetugasProfile::where('id_user', $user->id_user)->first();
+        $hasProfile = !is_null($profile);
+        $isVerified = $hasProfile && $profile->status === 'approved';
+        Log::info(sprintf(
+            'Profile check - User ID: %s, Has Profile: %s, Status: %s',
+            $user->id_user,
+            $hasProfile ? 'Yes' : 'No',
+            $hasProfile ? $profile->status : 'N/A'
+        ));
+        
+        return response()->json([
+            'status' => 'success',
+            'has_profile' => $hasProfile,
+            'is_verified' => $isVerified,
+            'profile_status' => $hasProfile ? $profile->status : null,
+            'user_id' => $user->id_user
+        ]);
+    }
+
     public function storePetugasProfile(StorePetugasProfileRequest $request)
     {
         try {
-            // Get the authenticated user
             $user = auth()->user();
-            
-            // Check if user already has a petugas profile
             if ($user->petugasProfile) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Anda sudah mengajukan verifikasi petugas sebelumnya',
                 ], 400);
             }
-            
-            // Handle file uploads
             $ktpPhotoPath = $request->file('ktp_photo')->store('petugas/ktp', 'public');
             $selfieWithKtpPath = $request->file('selfie_with_ktp')->store('petugas/selfie', 'public');
-            
-            // Create petugas profile
             $profile = new PetugasProfile([
                 'ktp_number' => $request->ktp_number,
                 'ktp_photo_path' => $ktpPhotoPath,
@@ -72,10 +85,7 @@ class UsersController extends Controller
                 'address' => $request->address,
                 'status' => 'pending',
             ]);
-            
-            // Save the profile
             $user->petugasProfile()->save($profile);
-            
             return response()->json([
                 'status' => 'success',
                 'message' => 'Profil petugas berhasil diajukan. Menunggu verifikasi admin.',
@@ -83,14 +93,12 @@ class UsersController extends Controller
             ], 201);
             
         } catch (\Exception $e) {
-            // Delete uploaded files if an error occurs
             if (isset($ktpPhotoPath) && Storage::disk('public')->exists($ktpPhotoPath)) {
                 Storage::disk('public')->delete($ktpPhotoPath);
             }
             if (isset($selfieWithKtpPath) && Storage::disk('public')->exists($selfieWithKtpPath)) {
                 Storage::disk('public')->delete($selfieWithKtpPath);
             }
-            
             return response()->json([
                 'status' => 'error',
                 'message' => 'Terjadi kesalahan saat mengajukan profil petugas',
@@ -111,6 +119,9 @@ class UsersController extends Controller
             'alamat' => 'nullable|string',
             'rating' => 'nullable|numeric',
         ]);
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
         $user->update($data);
         return response()->json($user);
     }

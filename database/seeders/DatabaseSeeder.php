@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             JenisServiceSeeder::class,
             JadwalPetugasSeeder::class,
+            PemesananSeeder::class,  // Add this before RatingPesananSeeder
             RatingPesananSeeder::class,
         ]);
     }

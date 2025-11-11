@@ -494,13 +494,13 @@ Authorization: Bearer your_jwt_token_here
 - `address` (required, string): Alamat lengkap
 
 **Headers:**
-\`\`\`
+```
 Authorization: Bearer your_token_here
 Accept: application/json
-\`\`\`
+```
 
 **Success Response (201 Created):**
-\`\`\`json
+```json
 {
     "status": "success",
     "message": "Profil petugas berhasil diajukan. Menunggu verifikasi admin.",
@@ -519,28 +519,142 @@ Accept: application/json
         "updated_at": "2025-11-10T02:30:00.000000Z"
     }
 }
-\`\`\`
+```
 
 **Error Response (400 Bad Request - Already Submitted):**
-\`\`\`json
+```json
 {
     "status": "error",
     "message": "Anda sudah mengajukan verifikasi petugas sebelumnya"
 }
-\`\`\`
+```
+
+### Check Petugas Profile Status
+
+- **URL**: `/api/check-petugas-profile`
+- **Method**: `GET`
+- **Authentication**: Required (Bearer Token)
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "success",
+  "has_profile": true,
+  "is_verified": false,
+  "profile_status": "pending",
+  "user_id": 1
+}
+```
+
+## 📦 Resource Endpoints
+
+Below are RESTful endpoints exposed via `Route::apiResource(...)`.
+
+### Users
+
+- Base path: `/api/users`
+- Methods:
+  - `GET /api/users`
+  - `GET /api/users/{id}`
+  - `POST /api/users`
+  - `PUT/PATCH /api/users/{id}`
+  - `DELETE /api/users/{id}`
+
+Fields for create/update:
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| nama | string | Yes (create) | Max 100 |
+| email | string | Yes (create) | Unique, max 100 |
+| password | string | Yes (create) | Min 6 |
+| role | string | Yes (create) | admin/petugas/pelanggan |
+| no_hp | string | No | Max 20 |
+| alamat | string | No |  |
+| rating | number | No |  |
+
+### Jenis Service
+
+- Base path: `/api/jenis-service`
+- Methods: index, show, store, update, destroy
+
+Fields (Store/Update):
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| kode_service | string | Yes | Unique, max 10 |
+| nama_service | string | Yes | Max 100 |
+| deskripsi | string | No |  |
+| harga | number | Yes | >= 0 |
+| estimasi_waktu | integer | Yes | >= 1 |
+
+### Jadwal Petugas
+
+- Base path: `/api/jadwal-petugas`
+- Methods: index, show, store, update, destroy
+
+Fields (Store/Update):
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id_petugas | integer | Yes | exists: users.id_user |
+| tanggal | date | Yes |  |
+| waktu_mulai | time (H:i:s) | Yes |  |
+| waktu_selesai | time (H:i:s) | Yes |  |
+| status | string | No | tersedia/dipesan/selesai |
+
+### Rating Pesanan
+
+- Base path: `/api/rating-pesanan`
+- Methods: index, show, store, update, destroy
+
+Fields (Store/Update):
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| id_pemesanan | integer | Yes | exists: pemesanan.id_pemesanan |
+| rating | integer | No | 1-5 |
+| ulasan | string | No |  |
+
+### Pemesanan (Admin/General Resource)
+
+- Base path: `/api/pemesanan`
+- Methods: index, show, store, update, destroy
+
+Note: For end-user booking flow, prefer the protected `/api/bookings` routes:
+
+- `GET /api/bookings` — list bookings for authenticated user
+- `POST /api/bookings` — create booking (uses the same payload as above "Create New Booking")
+- `GET /api/bookings/{id}` — booking detail
+
+### Petugas Profile
+
+- Base path: `/api/form-profile-petugas`
+- Methods: store
+
+Fields (Store):
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| ktp_number | string | Yes | 16 digits |
+| ktp_photo | file | Yes | max 2MB, jpeg/png/jpg |
+| selfie_with_ktp | file | Yes | max 2MB, jpeg/png/jpg |
+| full_name | string | Yes |  |
+| date_of_birth | date | Yes | YYYY-MM-DD |
+| phone_number | string | Yes |  |
+| address | string | Yes |  |
 
 ## Error Responses
 
 ### 401 Unauthorized
-\`\`\`json
+```json
 {
     "status": "error",
     "message": "Unauthenticated."
 }
-\`\`\`
+```
 
 ### 422 Unprocessable Entity (Validation Error)
-\`\`\`json
+```json
 {
     "status": "error",
     "message": "Validasi gagal",
@@ -553,16 +667,16 @@ Accept: application/json
         ]
     }
 }
-\`\`\`
+```
 
 ### 500 Internal Server Error
-\`\`\`json
+```json
 {
     "status": "error",
     "message": "Terjadi kesalahan",
     "error": "Error message details (only in development)"
 }
-\`\`\`
+```
 
 ## Setup
 

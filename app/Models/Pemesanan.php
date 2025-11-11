@@ -10,7 +10,7 @@ class Pemesanan extends Model
     use HasFactory;
 
     protected $table = 'pemesanans';
-    protected $primaryKey = 'id_pemesanan';
+    protected $primaryKey = 'id';
     public $timestamps = false;
 
     protected $fillable = [
@@ -20,26 +20,24 @@ class Pemesanan extends Model
         'service_date',
         'duration',
         'preferred_gender',
-        'id_jadwal',
-        'lokasi',
-        'catatan',
         'status',
-        'tanggal_pesan',
+        'catatan',
     ];
 
-    public function pelanggan()
+    protected $dates = ['service_date'];
+    
+    protected $casts = [
+        'service_date' => 'date',
+    ];
+
+    public function user()
     {
-        return $this->belongsTo(User::class, 'id_pelanggan', 'id_user');
+        return $this->belongsTo(User::class);
     }
 
-    public function petugas()
+    public function jenisService()
     {
-        return $this->belongsTo(User::class, 'id_petugas', 'id_user');
-    }
-
-    public function jadwal()
-    {
-        return $this->belongsTo(JadwalPetugas::class, 'id_jadwal', 'id_jadwal');
+        return $this->belongsTo(JenisService::class, 'jenis_service_id');
     }
 
     public function rating()

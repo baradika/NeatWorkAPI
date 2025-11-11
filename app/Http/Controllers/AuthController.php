@@ -162,4 +162,25 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    public function logout(Request $request)
+    {
+        try {
+            $token = $request->user()?->currentAccessToken();
+            if ($token) {
+                $token->delete();
+            }
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Logout berhasil'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Logout error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat logout',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : 'Internal Server Error'
+            ], 500);
+        }
+    }
 }

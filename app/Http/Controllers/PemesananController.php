@@ -6,6 +6,7 @@ use App\Models\Pemesanan;
 use App\Models\JenisService;
 use App\Http\Requests\StorePemesananRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -52,10 +53,11 @@ class PemesananController extends Controller
     public function index(): JsonResponse
     {
         try {
+            $perPage = (int) request('per_page', 15);
             $pemesanans = Pemesanan::with('jenisService')
                 ->where('user_id', Auth::id())
                 ->latest()
-                ->get();
+                ->paginate($perPage);
 
             return response()->json([
                 'status' => 'success',
@@ -77,19 +79,7 @@ class PemesananController extends Controller
         return response()->json($item);
     }
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'id_pelanggan' => 'required|integer|exists:users,id_user',
-            'id_petugas' => 'required|integer|exists:users,id_user',
-            'id_jadwal' => 'required|integer|exists:jadwal_petugas,id_jadwal',
-            'lokasi' => 'required|string',
-            'catatan' => 'nullable|string',
-            'status' => 'nullable|in:menunggu,dikonfirmasi,selesai,dibatalkan',
-        ]);
-        $item = Pemesanan::create($data);
-        return response()->json($item, 201);
-    }
+    // Store method is already defined above with StorePemesananRequest
 
     public function update(Request $request, string $id)
     {
@@ -111,5 +101,46 @@ class PemesananController extends Controller
         $item = Pemesanan::query()->findOrFail($id);
         $item->delete();
         return response()->json(null, 204);
+    }
+
+    public function cancel(string $id): JsonResponse
+    {
+        try {
+            $pemesanan = Pemesanan::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if (!$pemesanan) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Data tidak ditemukan'
+                ], 404);
+            }
+
+            if ($pemesanan->status !== 'pending') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pesanan tidak dapat dibatalkan'
+                ], 400);
+            }
+
+            $pemesanan->status = 'cancelled';
+            $pemesanan->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pesanan berhasil dibatalkan',
+                'data' => [
+                    'id' => $pemesanan->id,
+                    'status' => $pemesanan->status,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membatalkan pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }

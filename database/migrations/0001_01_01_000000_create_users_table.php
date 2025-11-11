@@ -17,9 +17,6 @@ return new class extends Migration
             $table->string('email', 100)->unique();
             $table->string('password', 255);
             $table->enum('role', ['admin', 'petugas', 'pelanggan']);
-            $table->string('no_hp', 20)->nullable();
-            $table->text('alamat')->nullable();
-            $table->decimal('rating', 2, 1)->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
     }

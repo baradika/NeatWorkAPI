@@ -14,10 +14,9 @@ class JadwalPetugasSeeder extends Seeder
             ['email' => 'budi@cleaning.com'],
             [
                 'nama' => 'Budi Petugas',
-                'password' => 'budi123',
+                'password' => bcrypt('budi123'),
                 'role' => 'petugas',
-                'no_hp' => '081234567891',
-                'alamat' => 'Jakarta Timur',
+                'created_at' => now(),
             ]
         );
 
