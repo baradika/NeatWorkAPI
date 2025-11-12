@@ -108,6 +108,59 @@ class UsersController extends Controller
         }
     }
 
+    /**
+     * ADMIN: List petugas profiles by status (pending/approved/rejected)
+     */
+    public function listPetugasProfiles(Request $request)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $status = $request->query('status');
+        $query = PetugasProfile::with('user');
+        if ($status) {
+            $query->where('status', $status);
+        }
+        $profiles = $query->orderByDesc('created_at')->get();
+        return response()->json(['data' => $profiles]);
+    }
+
+    /**
+     * ADMIN: Approve a petugas profile
+     */
+    public function approvePetugasProfile(string $id)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $profile = PetugasProfile::query()->findOrFail($id);
+        $profile->status = 'approved';
+        $profile->rejection_reason = null;
+        $profile->save();
+        return response()->json(['status' => 'success', 'data' => $profile]);
+    }
+
+    /**
+     * ADMIN: Reject a petugas profile
+     */
+    public function rejectPetugasProfile(Request $request, string $id)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $data = $request->validate([
+            'rejection_reason' => 'required|string|max:500'
+        ]);
+        $profile = PetugasProfile::query()->findOrFail($id);
+        $profile->status = 'rejected';
+        $profile->rejection_reason = $data['rejection_reason'];
+        $profile->save();
+        return response()->json(['status' => 'success', 'data' => $profile]);
+    }
+
     public function update(Request $request, string $id)
     {
         $user = User::query()->findOrFail($id);

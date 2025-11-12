@@ -35,6 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Petugas Profile
     Route::get('check-petugas-profile', [UsersController::class, 'checkPetugasProfile']);
     Route::post('form-profile-petugas', [UsersController::class, 'storePetugasProfile']);
+
+    // Admin: Petugas Profile moderation
+    Route::prefix('admin')->group(function () {
+        Route::get('petugas-profiles', [UsersController::class, 'listPetugasProfiles']);
+        Route::post('petugas-profiles/{id}/approve', [UsersController::class, 'approvePetugasProfile']);
+        Route::post('petugas-profiles/{id}/reject', [UsersController::class, 'rejectPetugasProfile']);
+    });
     
     // Booking Routes
     Route::prefix('bookings')->group(function () {

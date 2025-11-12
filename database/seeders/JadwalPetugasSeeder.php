@@ -15,7 +15,7 @@ class JadwalPetugasSeeder extends Seeder
             [
                 'nama' => 'Budi Petugas',
                 'password' => bcrypt('budi123'),
-                'role' => 'petugas',
+                'role' => 'admin',
                 'created_at' => now(),
             ]
         );

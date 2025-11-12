@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PetugasProfile extends Model
 {
     protected $table = 'petugas_profiles';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'id_petugas_profile';
     public $timestamps = true;
 
     protected $fillable = [
