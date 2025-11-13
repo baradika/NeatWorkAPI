@@ -11,10 +11,10 @@ class JadwalPetugasSeeder extends Seeder
     public function run(): void
     {
         $petugas = User::firstOrCreate(
-            ['email' => 'budi@cleaning.com'],
+            ['email' => 'admin@admin.com'],
             [
-                'nama' => 'Budi Petugas',
-                'password' => bcrypt('budi123'),
+                'nama' => 'admin',
+                'password' => bcrypt('admin123'),
                 'role' => 'admin',
                 'created_at' => now(),
             ]

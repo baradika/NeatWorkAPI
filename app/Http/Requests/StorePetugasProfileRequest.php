@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePetugasProfileRequest extends FormRequest
 {
@@ -21,8 +22,16 @@ class StorePetugasProfileRequest extends FormRequest
      */
     public function rules(): array
     {
+        $user = $this->user();
+        $profile = $user?->petugasProfile;
+
+        $ktpRule = Rule::unique('petugas_profiles', 'ktp_number');
+        if ($profile && $profile->status === 'rejected') {
+            $ktpRule = $ktpRule->ignore($profile->id_petugas_profile, 'id_petugas_profile');
+        }
+
         return [
-            'ktp_number' => 'required|digits:16|unique:petugas_profiles,ktp_number',
+            'ktp_number' => ['required', 'digits:16', $ktpRule],
             'ktp_photo' => 'required|image|mimes:jpeg,png,jpg|max:5120',
             'selfie_with_ktp' => 'required|image|mimes:jpeg,png,jpg|max:5120',
             'full_name' => 'required|string|max:100',

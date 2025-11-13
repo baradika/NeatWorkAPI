@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PetugasProfileApproved;
+use App\Mail\PetugasProfileRejected;
 
 class UsersController extends Controller
 {
@@ -68,7 +71,8 @@ class UsersController extends Controller
     {
         try {
             $user = auth()->user();
-            if ($user->petugasProfile) {
+            $existing = $user->petugasProfile;
+            if ($existing && $existing->status !== 'rejected') {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Anda sudah mengajukan verifikasi petugas sebelumnya',
@@ -76,22 +80,53 @@ class UsersController extends Controller
             }
             $ktpPhotoPath = $request->file('ktp_photo')->store('petugas/ktp', 'public');
             $selfieWithKtpPath = $request->file('selfie_with_ktp')->store('petugas/selfie', 'public');
-            $profile = new PetugasProfile([
-                'ktp_number' => $request->ktp_number,
-                'ktp_photo_path' => $ktpPhotoPath,
-                'selfie_with_ktp_path' => $selfieWithKtpPath,
-                'full_name' => $request->full_name,
-                'date_of_birth' => $request->date_of_birth,
-                'phone_number' => $request->phone_number,
-                'address' => $request->address,
-                'status' => 'pending',
-            ]);
-            $user->petugasProfile()->save($profile);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Profil petugas berhasil diajukan. Menunggu verifikasi admin.',
-                'data' => $profile
-            ], 201);
+            if ($existing && $existing->status === 'rejected') {
+                // Optional: delete old files
+                try {
+                    if ($existing->ktp_photo_path && Storage::disk('public')->exists($existing->ktp_photo_path)) {
+                        Storage::disk('public')->delete($existing->ktp_photo_path);
+                    }
+                    if ($existing->selfie_with_ktp_path && Storage::disk('public')->exists($existing->selfie_with_ktp_path)) {
+                        Storage::disk('public')->delete($existing->selfie_with_ktp_path);
+                    }
+                } catch (\Exception $e) {
+                    // ignore file delete errors
+                }
+
+                $existing->ktp_number = $request->ktp_number;
+                $existing->ktp_photo_path = $ktpPhotoPath;
+                $existing->selfie_with_ktp_path = $selfieWithKtpPath;
+                $existing->full_name = $request->full_name;
+                $existing->date_of_birth = $request->date_of_birth;
+                $existing->phone_number = $request->phone_number;
+                $existing->address = $request->address;
+                $existing->status = 'pending';
+                $existing->rejection_reason = null;
+                $existing->save();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Pengajuan profil diperbarui. Menunggu verifikasi admin.',
+                    'data' => $existing
+                ], 200);
+            } else {
+                $profile = new PetugasProfile([
+                    'ktp_number' => $request->ktp_number,
+                    'ktp_photo_path' => $ktpPhotoPath,
+                    'selfie_with_ktp_path' => $selfieWithKtpPath,
+                    'full_name' => $request->full_name,
+                    'date_of_birth' => $request->date_of_birth,
+                    'phone_number' => $request->phone_number,
+                    'address' => $request->address,
+                    'status' => 'pending',
+                ]);
+                $user->petugasProfile()->save($profile);
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Profil petugas berhasil diajukan. Menunggu verifikasi admin.',
+                    'data' => $profile
+                ], 201);
+            }
             
         } catch (\Exception $e) {
             if (isset($ktpPhotoPath) && Storage::disk('public')->exists($ktpPhotoPath)) {
@@ -139,6 +174,14 @@ class UsersController extends Controller
         $profile->status = 'approved';
         $profile->rejection_reason = null;
         $profile->save();
+        try {
+            $email = $profile->user?->email;
+            if ($email) {
+                Mail::to($email)->send(new PetugasProfileApproved($profile));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send approval email: '.$e->getMessage());
+        }
         return response()->json(['status' => 'success', 'data' => $profile]);
     }
 
@@ -158,6 +201,14 @@ class UsersController extends Controller
         $profile->status = 'rejected';
         $profile->rejection_reason = $data['rejection_reason'];
         $profile->save();
+        try {
+            $email = $profile->user?->email;
+            if ($email) {
+                Mail::to($email)->send(new PetugasProfileRejected($profile));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send rejection email: '.$e->getMessage());
+        }
         return response()->json(['status' => 'success', 'data' => $profile]);
     }
 
