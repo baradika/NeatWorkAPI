@@ -38,6 +38,8 @@ class StorePetugasProfileRequest extends FormRequest
             'date_of_birth' => 'required|date|before:today',
             'phone_number' => 'required|string|max:20',
             'address' => 'required|string|max:500',
+            'gender' => 'required|in:male,female',
+            'work_experience' => 'nullable|string|max:1000',
         ];
     }
 
@@ -60,6 +62,8 @@ class StorePetugasProfileRequest extends FormRequest
             'date_of_birth.before' => 'Tanggal lahir tidak valid',
             'phone_number.required' => 'Nomor telepon harus diisi',
             'address.required' => 'Alamat lengkap harus diisi',
+            'gender.required' => 'Jenis kelamin harus dipilih',
+            'gender.in' => 'Jenis kelamin tidak valid',
         ];
     }
 }

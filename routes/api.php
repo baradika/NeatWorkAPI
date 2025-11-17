@@ -50,5 +50,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [PemesananController::class, 'show']);
         Route::post('/{id}/cancel', [PemesananController::class, 'cancel']);
     });
+
+    // Staff: available bookings matching staff profile (gender any or match)
+    Route::get('petugas/available-bookings', [PemesananController::class, 'availableForStaff']);
+    Route::post('petugas/bookings/{id}/accept', [PemesananController::class, 'acceptByStaff']);
+    Route::post('petugas/bookings/{id}/reject', [PemesananController::class, 'rejectByStaff']);
+    Route::post('petugas/bookings/{id}/start', [PemesananController::class, 'startByStaff']);
+    Route::post('petugas/bookings/{id}/complete', [PemesananController::class, 'completeByStaff']);
+    Route::get('petugas/my-bookings', [PemesananController::class, 'myBookings']);
+
+    // Ratings (customer)
+    Route::post('ratings', [RatingPesananController::class, 'store']);
+    Route::put('ratings/{id}', [RatingPesananController::class, 'update']);
+    Route::get('ratings/status/{orderId}', [RatingPesananController::class, 'ratingStatus']);
 });
 

@@ -27,8 +27,10 @@ class PemesananController extends Controller
                 'jenis_service_id' => $request->jenis_service_id,
                 'alamat' => $request->alamat,
                 'service_date' => $request->service_date,
+                'service_time' => $request->service_time,
                 'duration' => $request->duration,
                 'preferred_gender' => $request->preferred_gender,
+                'people_count' => $request->people_count,
                 'catatan' => $request->catatan,
                 'status' => 'pending',
                 'total_harga' => $totalHarga,
@@ -139,6 +141,205 @@ class PemesananController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal membatalkan pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function availableForStaff(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $profile = $user?->petugasProfile;
+            if (!$profile || $profile->status !== 'approved') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Profil petugas tidak ditemukan atau belum disetujui'
+                ], 403);
+            }
+
+            $gender = $profile->gender; // 'male' | 'female'
+
+            $query = Pemesanan::with('jenisService')
+                ->whereIn('status', ['pending', 'diproses'])
+                ->where(function ($q) use ($gender) {
+                    $q->where('preferred_gender', 'any')
+                      ->orWhere('preferred_gender', $gender);
+                });
+
+            if ($request->filled('date')) {
+                $query->whereDate('service_date', $request->get('date'));
+            }
+            if ($request->filled('service_id')) {
+                $query->where('jenis_service_id', (int) $request->get('service_id'));
+            }
+
+            $perPage = (int) $request->get('per_page', 15);
+            $items = $query->latest()->paginate($perPage);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $items
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memuat pemesanan yang tersedia',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function acceptByStaff(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $profile = $user?->petugasProfile;
+            if (!$profile || $profile->status !== 'approved') {
+                return response()->json(['status' => 'error', 'message' => 'Profil petugas belum disetujui'], 403);
+            }
+
+            $p = Pemesanan::query()->with('jenisService')->findOrFail($id);
+            if (!in_array($p->status, ['pending', 'diproses'])) {
+                return response()->json(['status' => 'error', 'message' => 'Pemesanan tidak bisa diterima'], 400);
+            }
+
+            // Gender check: only allow if matches or any
+            $staffGender = $profile->gender; // male|female
+            if (!in_array($p->preferred_gender, ['any', $staffGender])) {
+                return response()->json(['status' => 'error', 'message' => 'Pemesanan tidak sesuai preferensi gender'], 400);
+            }
+
+            $p->assigned_petugas_id = $user->id_user;
+            $p->status = 'diproses';
+            $p->save();
+
+            return response()->json(['status' => 'success', 'data' => $p->load('jenisService')]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menerima pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function rejectByStaff(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $p = Pemesanan::query()->findOrFail($id);
+            if (!in_array($p->status, ['pending', 'diproses'])) {
+                return response()->json(['status' => 'error', 'message' => 'Pemesanan tidak bisa ditolak'], 400);
+            }
+            // If petugas already assigned and not the same person, block
+            if ($p->assigned_petugas_id && $p->assigned_petugas_id !== $user->id_user) {
+                return response()->json(['status' => 'error', 'message' => 'Pemesanan sudah ditangani petugas lain'], 400);
+            }
+
+            // Revert to pending without assignment, or set ditolak
+            $p->assigned_petugas_id = null;
+            $p->status = 'pending';
+            $p->save();
+
+            return response()->json(['status' => 'success']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak pemesanan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function myBookings(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $now = Carbon::now()->toDateString();
+
+            $baseQuery = Pemesanan::with('jenisService')
+                ->where('assigned_petugas_id', $user->id_user);
+
+            // Incoming: tanggal >= hari ini dan status diproses/diterima
+            $incoming = (clone $baseQuery)
+                ->whereIn('status', ['diproses', 'diterima'])
+                ->whereDate('service_date', '>=', $now)
+                ->latest()->get();
+
+            // In-progress: tanggal == hari ini dan status diproses
+            $inProgress = (clone $baseQuery)
+                ->where('status', 'diproses')
+                ->whereDate('service_date', '=', $now)
+                ->latest()->get();
+
+            // Completed: status selesai
+            $completed = (clone $baseQuery)
+                ->where('status', 'selesai')
+                ->latest()->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'incoming' => $incoming,
+                    'in_progress' => $inProgress,
+                    'completed' => $completed,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memuat data booking petugas',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function startByStaff(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $profile = $user?->petugasProfile;
+            if (!$profile || $profile->status !== 'approved') {
+                return response()->json(['status' => 'error', 'message' => 'Profil petugas belum disetujui'], 403);
+            }
+            $p = Pemesanan::query()->findOrFail($id);
+            if ($p->assigned_petugas_id !== $user->id_user) {
+                return response()->json(['status' => 'error', 'message' => 'Anda tidak ditugaskan pada pemesanan ini'], 403);
+            }
+            if (!in_array($p->status, ['diproses', 'diterima'])) {
+                return response()->json(['status' => 'error', 'message' => 'Status pemesanan tidak valid untuk mulai'], 400);
+            }
+            $p->status = 'diproses';
+            $p->save();
+            return response()->json(['status' => 'success', 'data' => $p]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memulai pekerjaan',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    public function completeByStaff(string $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $p = Pemesanan::query()->findOrFail($id);
+            if ($p->assigned_petugas_id !== $user->id_user) {
+                return response()->json(['status' => 'error', 'message' => 'Anda tidak ditugaskan pada pemesanan ini'], 403);
+            }
+            if ($p->status !== 'diproses') {
+                return response()->json(['status' => 'error', 'message' => 'Hanya pekerjaan yang sedang diproses yang bisa diselesaikan'], 400);
+            }
+            $p->status = 'selesai';
+            $p->save();
+            return response()->json(['status' => 'success', 'data' => $p]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyelesaikan pekerjaan',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

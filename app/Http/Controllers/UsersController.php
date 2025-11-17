@@ -100,6 +100,8 @@ class UsersController extends Controller
                 $existing->date_of_birth = $request->date_of_birth;
                 $existing->phone_number = $request->phone_number;
                 $existing->address = $request->address;
+                $existing->gender = $request->gender;
+                $existing->work_experience = $request->work_experience;
                 $existing->status = 'pending';
                 $existing->rejection_reason = null;
                 $existing->save();
@@ -118,6 +120,8 @@ class UsersController extends Controller
                     'date_of_birth' => $request->date_of_birth,
                     'phone_number' => $request->phone_number,
                     'address' => $request->address,
+                    'gender' => $request->gender,
+                    'work_experience' => $request->work_experience,
                     'status' => 'pending',
                 ]);
                 $user->petugasProfile()->save($profile);

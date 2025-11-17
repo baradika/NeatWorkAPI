@@ -20,6 +20,8 @@ class PetugasProfile extends Model
         'date_of_birth',
         'phone_number',
         'address',
+        'gender',
+        'work_experience',
         'status',
         'rejection_reason',
     ];

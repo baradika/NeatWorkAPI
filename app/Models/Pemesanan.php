@@ -15,19 +15,25 @@ class Pemesanan extends Model
 
     protected $fillable = [
         'user_id',
+        'assigned_petugas_id',
         'jenis_service_id',
         'alamat',
         'service_date',
+        'service_time',
         'duration',
         'preferred_gender',
+        'people_count',
         'status',
         'catatan',
+        'total_harga',
+        'tanggal_pesan',
     ];
 
     protected $dates = ['service_date'];
     
     protected $casts = [
         'service_date' => 'date',
+        'total_harga' => 'decimal:2',
     ];
 
     public function user()
@@ -42,6 +48,6 @@ class Pemesanan extends Model
 
     public function rating()
     {
-        return $this->hasOne(RatingPesanan::class, 'id_pemesanan', 'id_pemesanan');
+        return $this->hasOne(RatingPesanan::class, 'id_pemesanan', 'id');
     }
 }
