@@ -26,6 +26,8 @@ class PemesananController extends Controller
                 'user_id' => Auth::id(),
                 'jenis_service_id' => $request->jenis_service_id,
                 'alamat' => $request->alamat,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
                 'service_date' => $request->service_date,
                 'service_time' => $request->service_time,
                 'duration' => $request->duration,

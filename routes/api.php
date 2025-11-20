@@ -8,6 +8,11 @@ use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\RatingPesananController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\JenisServiceController;
+use App\Http\Controllers\PromoController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\UserAddressController;
+use App\Http\Controllers\PricingController;
 
 // Public read-only endpoints
 Route::apiResource('users', UsersController::class)->only(['index', 'show']);
@@ -15,6 +20,11 @@ Route::apiResource('jadwal-petugas', JadwalPetugasController::class)->only(['ind
 Route::apiResource('pemesanan', PemesananController::class)->only(['index', 'show']);
 Route::apiResource('rating-pesanan', RatingPesananController::class)->only(['index', 'show']);
 Route::apiResource('jenis-service', JenisServiceController::class)->only(['index', 'show']);
+Route::apiResource('promos', PromoController::class)->only(['index', 'show']);
+
+// Public geocode proxy (bypass CORS to Nominatim)
+Route::get('geocode/reverse', [GeocodeController::class, 'reverse']);
+Route::get('geocode/search', [GeocodeController::class, 'search']);
 
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -31,6 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pemesanan', PemesananController::class)->only(['store', 'update', 'destroy']);
     Route::apiResource('rating-pesanan', RatingPesananController::class)->only(['store', 'update', 'destroy']);
     Route::apiResource('jenis-service', JenisServiceController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('promos', PromoController::class)->only(['store', 'update', 'destroy']);
+
+    // Authenticated user info
+    Route::get('me', [UsersController::class, 'me']);
+    Route::get('me/stats', [UsersController::class, 'stats']);
+
+    // Dashboard summary
+    Route::get('dashboard/summary', [DashboardController::class, 'summary']);
 
     // Petugas Profile
     Route::get('check-petugas-profile', [UsersController::class, 'checkPetugasProfile']);
@@ -63,5 +81,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('ratings', [RatingPesananController::class, 'store']);
     Route::put('ratings/{id}', [RatingPesananController::class, 'update']);
     Route::get('ratings/status/{orderId}', [RatingPesananController::class, 'ratingStatus']);
+
+    // Favorite Addresses (current user)
+    Route::prefix('me')->group(function () {
+        Route::get('addresses', [UserAddressController::class, 'index']);
+        Route::post('addresses', [UserAddressController::class, 'store']);
+        Route::put('addresses/{id}', [UserAddressController::class, 'update']);
+        Route::delete('addresses/{id}', [UserAddressController::class, 'destroy']);
+    });
+
+    // Pricing & Promo
+    Route::post('estimate-price', [PricingController::class, 'estimate']);
+    Route::post('promos/validate', [PromoController::class, 'validateCode']);
 });
+
 

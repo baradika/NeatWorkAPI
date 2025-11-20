@@ -27,6 +27,15 @@ class UsersController extends Controller
         return response()->json($user);
     }
 
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        return response()->json(['data' => $user]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

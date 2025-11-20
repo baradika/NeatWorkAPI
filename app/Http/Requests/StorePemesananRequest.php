@@ -16,6 +16,8 @@ class StorePemesananRequest extends FormRequest
         return [
             'jenis_service_id' => 'required|exists:jenis_services,id',
             'alamat' => 'required|string|max:1000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'service_date' => 'required|date|after_or_equal:today',
             'service_time' => 'required|date_format:H:i',
             'duration' => 'required|integer|min:1',

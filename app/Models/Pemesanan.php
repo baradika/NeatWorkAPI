@@ -18,6 +18,8 @@ class Pemesanan extends Model
         'assigned_petugas_id',
         'jenis_service_id',
         'alamat',
+        'latitude',
+        'longitude',
         'service_date',
         'service_time',
         'duration',
@@ -34,6 +36,8 @@ class Pemesanan extends Model
     protected $casts = [
         'service_date' => 'date',
         'total_harga' => 'decimal:2',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
     ];
 
     public function user()
