@@ -17,6 +17,7 @@ class StoreJenisServiceRequest extends FormRequest
             'kode_service' => 'required|string|max:10|unique:jenis_services,kode_service',
             'nama_service' => 'required|string|max:100',
             'deskripsi' => 'nullable|string',
+            'image_url' => 'nullable|string|max:255',
             'harga' => 'required|numeric|min:0',
             'estimasi_waktu' => 'required|integer|min:1',
         ];

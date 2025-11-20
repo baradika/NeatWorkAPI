@@ -17,6 +17,7 @@ class JenisService extends Model
         'kode_service',
         'nama_service',
         'deskripsi',
+        'image_url',
         'harga',
         'estimasi_waktu'
     ];
